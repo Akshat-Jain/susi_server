@@ -16,7 +16,6 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.aaa;
 
 import ai.susi.DAO;
@@ -24,77 +23,102 @@ import ai.susi.EmailHandler;
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.*;
 import ai.susi.tools.TimeoutMatcher;
-import org.json.JSONObject;
 
-import javax.servlet.http.HttpServletResponse;
 import java.util.regex.Pattern;
 
-public class PasswordResetService extends AbstractAPIHandler implements APIHandler {
+import javax.servlet.http.HttpServletResponse;
 
-	private static final long serialVersionUID = -8893457607971788891L;
+import org.json.JSONObject;
 
-	@Override
-	public String getAPIPath() {
-		return "/aaa/resetpassword.json";
-	}
+public class PasswordResetService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = -8893457607971788891L;
 
-	@Override
-	public UserRole getMinimalUserRole() {
-		return UserRole.ANONYMOUS;
-	}
+  @Override
+  public String getAPIPath() {
+    return "/aaa/resetpassword.json";
+  }
 
-	@Override
-	public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-		return null;
-	}
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
 
-	@Override
-	public ServiceResponse serviceImpl(Query call, HttpServletResponse response, Authorization rights, final JsonObjectWithDefault permissions)
-			throws APIException {
-		JSONObject result = new JSONObject(true);
-		result.put("accepted", false);
-		result.put("message", "Error: Unable to reset Password");
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
 
-		String newpass = call.get("newpass", null);
+  @Override
+  public ServiceResponse serviceImpl(
+    Query call,
+    HttpServletResponse response,
+    Authorization rights,
+    final JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    JSONObject result = new JSONObject(true);
+    result.put("accepted", false);
+    result.put("message", "Error: Unable to reset Password");
 
-		ClientCredential credential = new ClientCredential(ClientCredential.Type.resetpass_token,
-				call.get("token", null));
-		Authentication authentication = new Authentication(credential, DAO.passwordreset);
-		ClientCredential emailcred = new ClientCredential(ClientCredential.Type.passwd_login,
-				authentication.getIdentity().getName());
+    String newpass = call.get("newpass", null);
 
-		String passwordPattern = DAO.getConfig("users.password.regex", "^(?=.*\\d).{6,64}$");
+    ClientCredential credential = new ClientCredential(
+      ClientCredential.Type.resetpass_token,
+      call.get("token", null)
+    );
+    Authentication authentication = new Authentication(
+      credential,
+      DAO.passwordreset
+    );
+    ClientCredential emailcred = new ClientCredential(
+      ClientCredential.Type.passwd_login,
+      authentication.getIdentity().getName()
+    );
 
-		Pattern pattern = Pattern.compile(passwordPattern);
+    String passwordPattern = DAO.getConfig(
+      "users.password.regex",
+      "^(?=.*\\d).{6,64}$"
+    );
 
-		if ((authentication.getIdentity().getName()).equals(newpass) || !new TimeoutMatcher(pattern.matcher(newpass)).matches()) {
-			// password can't equal email and regex should match
-			throw new APIException(400, "invalid password");
-		}
+    Pattern pattern = Pattern.compile(passwordPattern);
 
-		if (DAO.hasAuthentication(emailcred)) {
-			Authentication emailauth = DAO.getAuthentication(emailcred);
-			String salt = createRandomString(20);
-			emailauth.remove("salt");
-			emailauth.remove("passwordHash");
-			emailauth.put("salt", salt);
-			emailauth.put("passwordHash", getHash(newpass, salt));
-		}
+    if ((authentication.getIdentity().getName()).equals(
+      newpass
+    ) || !new TimeoutMatcher(pattern.matcher(newpass)).matches(
 
-		if (authentication.has("one_time") && authentication.getBoolean("one_time")) {
-			authentication.delete();
-		}
+    )) {// password can't equal email and regex should match
 
-		String subject = "Password Reset";
-		try {
-			EmailHandler.sendEmail(authentication.getIdentity().getName(), subject, "Your password has been reset successfully!");
-			result.put("accepted", true);
-			result.put("message", "Your password has been changed!");
-		} catch (Exception e) {
-			result.put("message", e.getMessage());
-		}
-
-		return new ServiceResponse(result);
-	}
+      throw new APIException(400, "invalid password");
+    }
+    if (DAO.hasAuthentication(emailcred)) {
+      Authentication emailauth = DAO.getAuthentication(emailcred);
+      String salt = createRandomString(20);
+      emailauth.remove("salt");
+      emailauth.remove("passwordHash");
+      emailauth.put("salt", salt);
+      emailauth.put("passwordHash", getHash(newpass, salt));
+    }
+    if (authentication.has("one_time") && authentication.getBoolean(
+      "one_time"
+    )) {
+      authentication.delete();
+    }
+    String subject = "Password Reset";
+    try {
+      EmailHandler.sendEmail(
+        authentication.getIdentity().getName(),
+        subject,
+        "Your password has been reset successfully!"
+      );
+      result.put("accepted", true);
+      result.put("message", "Your password has been changed!");
+    } catch(Exception e) {
+      result.put("message", e.getMessage());
+    }
+    return new ServiceResponse(result);
+  }
 
 }
+

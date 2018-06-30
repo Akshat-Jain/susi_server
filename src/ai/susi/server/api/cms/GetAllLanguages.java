@@ -16,17 +16,18 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.cms;
 
 import ai.susi.DAO;
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.*;
-import org.json.JSONArray;
-import org.json.JSONObject;
+
+import java.io.File;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * Created by chetankaushik on 24/06/17.
@@ -35,37 +36,46 @@ import java.io.File;
  * Accepts 2 GET parameters, Model Name and Group Name
  * http://127.0.0.1:4000/cms/getAllLanguages.json?group=assistants
  */
-public class GetAllLanguages  extends AbstractAPIHandler implements APIHandler {
+public class GetAllLanguages
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = -7872551914189898030L;
 
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
 
-    private static final long serialVersionUID = -7872551914189898030L;
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
 
-    @Override
-    public UserRole getMinimalUserRole() { return UserRole.ANONYMOUS; }
+  @Override
+  public String getAPIPath() {
+    return "/cms/getAllLanguages.json";
+  }
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
+  @Override
+  public ServiceResponse serviceImpl(
+    Query call,
+    HttpServletResponse response,
+    Authorization rights,
+    final JsonObjectWithDefault permissions
+  ) {
+    String model_name = call.get("model", "general");
+    File model = new File(DAO.model_watch_dir, model_name);
+    String group_name = call.get("group", "Knowledge");
+    File group = new File(model, group_name);
+    JSONObject json = new JSONObject(true);
+    json.put("accepted", false);
+    String[] languages = group.list(
+      (current, name) -> new File(current, name).isDirectory()
+    );
+    JSONArray languagesArray = new JSONArray(languages);
+    json.put("languagesArray", languagesArray);
+    json.put("accepted", true);
+    return new ServiceResponse(json);
+  }
 
-    @Override
-    public String getAPIPath() {
-        return "/cms/getAllLanguages.json";
-    }
-
-    @Override
-    public ServiceResponse serviceImpl(Query call, HttpServletResponse response, Authorization rights, final JsonObjectWithDefault permissions) {
-
-        String model_name = call.get("model", "general");
-        File model = new File(DAO.model_watch_dir, model_name);
-        String group_name = call.get("group", "Knowledge");
-        File group = new File(model, group_name);
-        JSONObject json = new JSONObject(true);
-        json.put("accepted", false);
-        String[] languages = group.list((current, name) -> new File(current, name).isDirectory());
-        JSONArray languagesArray = new JSONArray(languages);
-        json.put("languagesArray", languagesArray);
-        json.put("accepted", true);
-        return new ServiceResponse(json);
-    }
 }
+

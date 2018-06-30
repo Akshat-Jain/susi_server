@@ -16,7 +16,6 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.aaa;
 
 import ai.susi.DAO;
@@ -25,9 +24,7 @@ import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.*;
 import ai.susi.tools.IO;
 import ai.susi.tools.TimeoutMatcher;
-import org.json.JSONObject;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -35,55 +32,65 @@ import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONObject;
+
 /**
  * This endpoint accepts 1 parameter check_email.
  * http://127.0.0.1:4000/aaa/checkRegistration.json?check_email=abc@email.com
  */
-public class CheckRegistrationService extends AbstractAPIHandler implements APIHandler {
+public class CheckRegistrationService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = 7402102212787839019L;
 
-	private static final long serialVersionUID = 7402102212787839019L;
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
 
-	@Override
-	public UserRole getMinimalUserRole() {
-		return UserRole.ANONYMOUS;
-	}
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
 
-	@Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
+  public String getAPIPath() {
+    return "/aaa/checkRegistration.json";
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query post,
+    HttpServletResponse response,
+    Authorization auth,
+    final JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    String checkEmail = post.get("check_email", null);
+
+    JSONObject result = new JSONObject();
+
+    if (checkEmail == null) {
+      throw new APIException(422, "Email not provided.");
     }
-	
-	public String getAPIPath() {
-		return "/aaa/checkRegistration.json";
-	}
+    // check if id exists already
+    ClientCredential credential = new ClientCredential(
+      ClientCredential.Type.passwd_login,
+      checkEmail
+    );
+    Authentication authentication = DAO.getAuthentication(credential);
 
-	@Override
-	public ServiceResponse serviceImpl(Query post, HttpServletResponse response, Authorization auth, final JsonObjectWithDefault permissions)
-			throws APIException {
+    if (authentication.getIdentity() != null) {
+      result.put("exists", true);
+    } else {
+      result.put("exists", false);
+    }
+    result.put("accepted", true);
+    result.put("check_email", checkEmail);
 
-        String checkEmail = post.get("check_email", null);
+    return new ServiceResponse(result);
+  }
 
-        JSONObject result = new JSONObject();
-        
-        if (checkEmail == null) {
-            throw new APIException(422, "Email not provided.");
-        }
-
-		// check if id exists already
-
-		ClientCredential credential = new ClientCredential(ClientCredential.Type.passwd_login, checkEmail);
-		Authentication authentication = DAO.getAuthentication(credential);
-
-		if (authentication.getIdentity() != null) {
-			result.put("exists", true);
-		} else {
-			result.put("exists", false);
-		}
-		
-		result.put("accepted", true);
-		result.put("check_email", checkEmail);
-
-		return new ServiceResponse(result);
-	}
-	
 }
+

@@ -16,7 +16,6 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.susi;
 
 import ai.susi.DAO;
@@ -24,13 +23,15 @@ import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.mind.SusiCognition;
 import ai.susi.server.*;
 import ai.susi.tools.DateParser;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
-import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * get information about the user.
@@ -38,75 +39,86 @@ import java.util.List;
  * given date. Also returns number of cognitions left to return.
  * http://127.0.0.1:4000/susi/memory.json?cognitions=2&date=2017-06-27T18:56:12.389Z
  */
-public class UserService extends AbstractAPIHandler implements APIHandler {
-   
-    private static final long serialVersionUID = 8578478303098111L;
+public class UserService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = 8578478303098111L;
 
-    @Override
-    public UserRole getMinimalUserRole() { return UserRole.ANONYMOUS; }
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
+
+  public String getAPIPath() {
+    return "/susi/memory.json";
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query post,
+    HttpServletResponse response,
+    Authorization user,
+    final JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    int cognitionsCount = Math.min(10, post.get("cognitions", 10));
+    String date = post.get("date", null);
+    boolean isValidDate = (date != null);
+
+    String client = user.getIdentity().getClient();
+    List<SusiCognition> cognitions = DAO.susi.getMemories().getCognitions(
+      client
+    );
+    //Stores all dates in arraylist
+    List<Date> dates = new ArrayList<>();
+    for (int i = 0; i < cognitions.size(); i++) {
+      dates.add(cognitions.get(i).getQueryDate());
     }
+    Date keyDate = null;
+    //Checks if date is valid
 
-    public String getAPIPath() {
-        return "/susi/memory.json";
+    if (isValidDate) {
+      try {
+        keyDate = DateParser.utcFormatter.parseDateTime(date).toDate();
+        isValidDate = true;
+      } catch(IllegalArgumentException e) {
+        isValidDate = false;
+      }
+    } else {
+      isValidDate = false;
     }
-    
-    @Override
-    public ServiceResponse serviceImpl(Query post, HttpServletResponse response, Authorization user, final JsonObjectWithDefault permissions) throws APIException {
+    int index = -1;
 
-        int cognitionsCount = Math.min(10, post.get("cognitions", 10));
-        String date = post.get("date",null);
-        boolean isValidDate = (date != null);
-
-        String client = user.getIdentity().getClient();
-        List<SusiCognition> cognitions = DAO.susi.getMemories().getCognitions(client);
-
-        //Stores all dates in arraylist
-        List<Date> dates = new ArrayList<>();
-        for(int i=0 ; i<cognitions.size() ; i++) {
-            dates.add(cognitions.get(i).getQueryDate());
-        }
-
-        Date keyDate = null;
-        //Checks if date is valid
-        if(isValidDate) {
-            try {
-                keyDate = DateParser.utcFormatter.parseDateTime(date).toDate();
-                isValidDate = true;
-            } catch (IllegalArgumentException e) {
-                isValidDate = false;
-            }
-        } else {
-            isValidDate = false;
-        }
-
-        int index = -1;
-
-        if(isValidDate)
-            index = dates.indexOf(keyDate);
-
-        JSONArray coga = new JSONArray();
-        int cognitionsRemaining = cognitions.size();
-        if(index == -1) {
-            for (SusiCognition cognition : cognitions) {
-                coga.put(cognition.getJSON());
-                cognitionsRemaining--;
-                if (--cognitionsCount <= 0) break;
-            }
-        } else {
-            cognitionsRemaining -= index;
-            for(int i=index ; i<cognitions.size() ; i++) {
-                coga.put(cognitions.get(i).getJSON());
-                cognitionsRemaining--;
-                if (--cognitionsCount <= 0) break;
-            }
-        }
-        JSONObject json = new JSONObject(true);
-        json.put("cognitions", coga);
-        json.put("cognitions_remaining", cognitionsRemaining);
-        return new ServiceResponse(json);
+    if (isValidDate)
+    index = dates.indexOf(keyDate);
+    JSONArray coga = new JSONArray();
+    int cognitionsRemaining = cognitions.size();
+    if (index == -1) {
+      for (SusiCognition cognition : cognitions) {
+        coga.put(cognition.getJSON());
+        cognitionsRemaining--;
+        if (--cognitionsCount <= 0)
+        break;
+      }
+    } else {
+      cognitionsRemaining -= index;
+      for (int i = index; i < cognitions.size(); i++) {
+        coga.put(cognitions.get(i).getJSON());
+        cognitionsRemaining--;
+        if (--cognitionsCount <= 0)
+        break;
+      }
     }
+    JSONObject json = new JSONObject(true);
+    json.put("cognitions", coga);
+    json.put("cognitions_remaining", cognitionsRemaining);
+    return new ServiceResponse(json);
+  }
+
 }
+

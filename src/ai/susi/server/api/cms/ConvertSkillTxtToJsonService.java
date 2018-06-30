@@ -16,40 +16,48 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.cms;
 
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.*;
-import org.json.JSONObject;
 
 import javax.servlet.http.HttpServletResponse;
 
-public class ConvertSkillTxtToJsonService extends AbstractAPIHandler implements APIHandler {
-    
-    private static final long serialVersionUID = 18344222L;
+import org.json.JSONObject;
 
-    @Override
-    public UserRole getMinimalUserRole() { return UserRole.ANONYMOUS; }
+public class ConvertSkillTxtToJsonService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = 18344222L;
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
 
-    @Override
-    public String getAPIPath() {
-        return "/cms/skill2txt.json";
-    }
-    
-    @Override
-    public ServiceResponse serviceImpl(Query call, HttpServletResponse response, Authorization rights, final JsonObjectWithDefault permissions) {
-        
-        JSONObject json = new JSONObject(true);
-        
-        // modify caching
-        json.put("$EXPIRES", 600);
-        json.put("accepted", true);
-        return new ServiceResponse(json);
-    }
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
+
+  @Override
+  public String getAPIPath() {
+    return "/cms/skill2txt.json";
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query call,
+    HttpServletResponse response,
+    Authorization rights,
+    final JsonObjectWithDefault permissions
+  ) {
+    JSONObject json = new JSONObject(true);
+
+    // modify caching
+    json.put("$EXPIRES", 600);
+    json.put("accepted", true);
+    return new ServiceResponse(json);
+  }
+
 }
+

@@ -20,10 +20,12 @@ import ai.susi.EmailHandler;
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.*;
 import ai.susi.tools.TimeoutMatcher;
-import org.json.JSONObject;
+
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
-import java.util.regex.Pattern;
+
+import org.json.JSONObject;
 
 /**
  * Created by dravit on 6/7/17.
@@ -33,98 +35,130 @@ import java.util.regex.Pattern;
  * password : current password
  * newpassword : new password
  */
-public class PasswordChangeService extends AbstractAPIHandler implements APIHandler {
-    /**
-     * 
-     */
-    private static final long serialVersionUID = -8679696048228442818L;
+public class PasswordChangeService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = -8679696048228442818L;
 
-    @Override
-    public String getAPIPath() {
-        return "/aaa/changepassword.json";
+  @Override
+  public String getAPIPath() {
+    return "/aaa/changepassword.json";
+  }
+
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.USER;
+  }
+
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query post,
+    HttpServletResponse response,
+    Authorization rights,
+    JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    JSONObject result = new JSONObject();
+    result.put("accepted", false);
+
+    String useremail = post.get("changepassword", null);
+    String password = post.get("password", null);
+    String newpassword = post.get("newpassword", null);
+
+    ClientCredential pwcredential = new ClientCredential(
+      ClientCredential.Type.passwd_login,
+      useremail
+    );
+    Authentication authentication = DAO.getAuthentication(pwcredential);
+    ClientCredential emailcred = new ClientCredential(
+      ClientCredential.Type.passwd_login,
+      authentication.getIdentity().getName()
+    );
+    ClientIdentity identity = authentication.getIdentity();
+    String passwordHash;
+    String salt;
+
+    try {
+      passwordHash = authentication.getString("passwordHash");
+      salt = authentication.getString("salt");
+    } catch(Throwable e) {
+      DAO.log(
+        "Invalid password try for user: " + identity.getName(
+
+        ) + " from host: " + post.getClientHost(
+
+        ) + " : password or salt missing in database"
+      );
+      result.put("message", "Invalid credentials.");
+      throw new APIException(422, "Invalid credentials");
     }
+    if (!passwordHash.equals(getHash(password, salt))) {
+      // save invalid login in accounting object
+      Accounting accouting = DAO.getAccounting(identity);
+      accouting.getRequests().addRequest(
+        this.getClass().getCanonicalName(),
+        "invalid login"
+      );
 
-    @Override
-    public UserRole getMinimalUserRole() {
-        return UserRole.USER;
-    }
+      DAO.log(
+        "Invalid change password try for user: " + identity.getName(
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
+        ) + " via passwd from host: " + post.getClientHost()
+      );
+      result.put("message", "Invalid credentials.");
+      throw new APIException(422, "Invalid credentials");
+    } else {
+      String passwordPattern = DAO.getConfig(
+        "users.password.regex",
+        "^(?=.*\\d).{6,64}$"
+      );
 
-    @Override
-    public ServiceResponse serviceImpl(Query post, HttpServletResponse response, Authorization rights, JsonObjectWithDefault permissions) throws APIException {
-        JSONObject result = new JSONObject();
-        result.put("accepted", false);
+      Pattern pattern = Pattern.compile(passwordPattern);
 
-        String useremail = post.get("changepassword", null);
-        String password = post.get("password", null);
-        String newpassword = post.get("newpassword", null);
+      if ((authentication.getIdentity().getName()).equals(
+        newpassword
+      ) || !new TimeoutMatcher(pattern.matcher(newpassword)).matches()) {
+        // password can't be equal to email and regex should be matched
+        result.put("message", "Invalid password.");
+        throw new APIException(400, "invalid password");
+      }
+      if (DAO.hasAuthentication(emailcred)) {
+        if (passwordHash.equals(getHash(newpassword, salt))) {
+          result.put("message", "Your current password matches new password.");
+          result.put("accepted", false);
+          return new ServiceResponse(result);
+        }
+        Authentication emailauth = DAO.getAuthentication(emailcred);
+        String newsalt = createRandomString(20);
+        emailauth.remove("passwordHash");
+        emailauth.put("passwordHash", getHash(newpassword, salt));
+        DAO.log(
+          "password change for user: " + identity.getName(
 
+          ) + " via newpassword from host: " + post.getClientHost()
+        );
 
-        ClientCredential pwcredential = new ClientCredential(ClientCredential.Type.passwd_login, useremail);
-        Authentication authentication = DAO.getAuthentication(pwcredential);
-        ClientCredential emailcred = new ClientCredential(ClientCredential.Type.passwd_login,
-                authentication.getIdentity().getName());
-        ClientIdentity identity = authentication.getIdentity();
-        String passwordHash;
-        String salt;
-
+        String subject = "Password Change";
         try {
-            passwordHash = authentication.getString("passwordHash");
-            salt = authentication.getString("salt");
-        } catch (Throwable e) {
-            DAO.log("Invalid password try for user: " + identity.getName() + " from host: " + post.getClientHost() + " : password or salt missing in database");
-            result.put("message", "Invalid credentials.");
-            throw new APIException(422, "Invalid credentials");
+          EmailHandler.sendEmail(
+            authentication.getIdentity().getName(),
+            subject,
+            "Your password has been changed successfully!"
+          );
+          result.put("message", "Your password has been changed!");
+          result.put("accepted", true);
+        } catch(Exception e) {
+          result.put("message", e.getMessage());
         }
-        if (!passwordHash.equals(getHash(password, salt))) {
-
-            // save invalid login in accounting object
-            Accounting accouting = DAO.getAccounting(identity);
-            accouting.getRequests().addRequest(this.getClass().getCanonicalName(), "invalid login");
-
-            DAO.log("Invalid change password try for user: " + identity.getName() + " via passwd from host: " + post.getClientHost());
-            result.put("message", "Invalid credentials.");
-            throw new APIException(422, "Invalid credentials");
-        } else {
-            String passwordPattern = DAO.getConfig("users.password.regex", "^(?=.*\\d).{6,64}$");
-
-            Pattern pattern = Pattern.compile(passwordPattern);
-
-            if ((authentication.getIdentity().getName()).equals(newpassword) || !new TimeoutMatcher(pattern.matcher(newpassword)).matches()) {
-                // password can't be equal to email and regex should be matched
-                result.put("message", "Invalid password.");
-                throw new APIException(400, "invalid password");
-            }
-
-            if (DAO.hasAuthentication(emailcred)) {
-                if(passwordHash.equals(getHash(newpassword, salt))){
-                    result.put("message","Your current password matches new password.");
-                    result.put("accepted", false);
-                    return new ServiceResponse(result);
-                }
-                Authentication emailauth = DAO.getAuthentication(emailcred);
-                String newsalt = createRandomString(20);
-                emailauth.remove("passwordHash");
-                emailauth.put("passwordHash", getHash(newpassword, salt));
-                DAO.log("password change for user: " + identity.getName() + " via newpassword from host: " + post.getClientHost());
-
-                String subject = "Password Change";
-                try {
-                    EmailHandler.sendEmail(authentication.getIdentity().getName(), subject, "Your password has been changed successfully!");
-                    result.put("message", "Your password has been changed!");
-                    result.put("accepted", true);
-                } catch (Exception e) {
-                    result.put("message", e.getMessage());
-                }
-            }
-        }
-
-        return new ServiceResponse(result);
+      }
     }
+    return new ServiceResponse(result);
+  }
 
 }
 

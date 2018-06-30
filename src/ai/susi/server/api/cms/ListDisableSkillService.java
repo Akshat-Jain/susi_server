@@ -16,8 +16,6 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
-
 package ai.susi.server.api.cms;
 
 import ai.susi.DAO;
@@ -27,55 +25,67 @@ import ai.susi.server.APIHandler;
 import ai.susi.server.AbstractAPIHandler;
 import ai.susi.server.Accounting;
 import ai.susi.server.Authorization;
-import ai.susi.server.UserRole;
 import ai.susi.server.Query;
 import ai.susi.server.ServiceResponse;
-
-import org.json.JSONObject;
+import ai.susi.server.UserRole;
 
 import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONObject;
 
 /**
  * Servlet to list all the disable skill  for a user in cms
  * test locally at http://127.0.0.1:4000/cms/listDisableSkill.json
  */
-public class ListDisableSkillService extends AbstractAPIHandler implements APIHandler {
+public class ListDisableSkillService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = -702759446567881858L;
 
+  @Override
+  public String getAPIPath() {
+    return "/cms/listDisableSkill.json";
+  }
 
-    private static final long serialVersionUID = -702759446567881858L;
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.USER;
+  }
 
-    @Override
-    public String getAPIPath() {
-        return "/cms/listDisableSkill.json";
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query call,
+    HttpServletResponse response,
+    Authorization authorization,
+    JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    if (authorization.getIdentity() == null) {
+      throw new APIException(
+        400,
+        "Specified User disabled skill not found, ensure you are logged in"
+      );
+    } else {
+      Accounting accounting = DAO.getAccounting(authorization.getIdentity());
+      JSONObject result = new JSONObject();
+      if (accounting.getJSON().has("disabledSkills")) {
+        result.put(
+          "disabledSkills",
+          accounting.getJSON().get("disabledSkills")
+        );
+      } else {
+        result.put("disabledSkills", new JSONObject());
+      }
+      result.put("accepted", true);
+      result.put("message", "Success: Showing User disabled skills");
+      return new ServiceResponse(result);
     }
+  }
 
-    @Override
-    public UserRole getMinimalUserRole() {
-        return UserRole.USER;
-    }
-
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
-
-    @Override
-    public ServiceResponse serviceImpl(Query call, HttpServletResponse response, Authorization authorization, JsonObjectWithDefault permissions) throws APIException {
-
-        if (authorization.getIdentity() == null) {
-            throw new APIException(400, "Specified User disabled skill not found, ensure you are logged in");
-        } else {
-            Accounting accounting = DAO.getAccounting(authorization.getIdentity());
-            JSONObject result = new JSONObject();
-            if (accounting.getJSON().has("disabledSkills")) {
-                result.put("disabledSkills",accounting.getJSON().get("disabledSkills"));
-            } else {
-                result.put("disabledSkills", new JSONObject());
-            }
-            result.put("accepted", true);
-            result.put("message", "Success: Showing User disabled skills");
-            return new ServiceResponse(result);
-        }
-
-    }
 }
+

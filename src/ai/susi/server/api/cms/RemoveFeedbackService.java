@@ -1,5 +1,10 @@
 package ai.susi.server.api.cms;
 
+import ai.susi.json.JsonObjectWithDefault;
+import ai.susi.json.JsonTray;
+import ai.susi.mind.SusiSkill;
+import ai.susi.server.*;
+
 /**
  *  RemoveFeedbackService
  *  Copyright by Akshat Garg, @akshatnitd
@@ -18,147 +23,149 @@ package ai.susi.server.api.cms;
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 import ai.susi.DAO;
-import ai.susi.json.JsonObjectWithDefault;
-import ai.susi.json.JsonTray;
-import ai.susi.mind.SusiSkill;
-import ai.susi.server.*;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 
+import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * This Endpoint accepts 5 parameters. model,group,language,skill,access_token
  * http://localhost:4000/cms/removeFeedback.json?model=general&group=Knowledge&language=en&skill=aboutsusi&&access_token=6O7cqoMbzlClxPwg1is31Tz5pjVwo3
  */
-public class RemoveFeedbackService extends AbstractAPIHandler implements APIHandler {
+public class RemoveFeedbackService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = -5131270951807551092L;
 
-    private static final long serialVersionUID = -5131270951807551092L;
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.USER;
+  }
 
-    @Override
-    public UserRole getMinimalUserRole() {
-        return UserRole.USER;
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
+
+  @Override
+  public String getAPIPath() {
+    return "/cms/removeFeedback.json";
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query call,
+    HttpServletResponse response,
+    Authorization authorization,
+    final JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    String model_name = call.get("model", "general");
+    File model = new File(DAO.model_watch_dir, model_name);
+    String group_name = call.get("group", "Knowledge");
+    File group = new File(model, group_name);
+    String language_name = call.get("language", "en");
+    File language = new File(group, language_name);
+    String skill_name = call.get("skill", null);
+    File skill = SusiSkill.getSkillFileInLanguage(language, skill_name, false);
+
+    JSONObject result = new JSONObject();
+    if (!skill.exists()) {
+      throw new APIException(422, "Skill does not exist.");
     }
+    if (!authorization.getIdentity().isAnonymous()) {
+      String idvalue = authorization.getIdentity().getName();
+      // Get id from the access_token
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
+      JsonTray feedbackSkill = DAO.feedbackSkill;
+      JSONObject modelName = new JSONObject();
+      JSONObject groupName = new JSONObject();
+      JSONObject languageName = new JSONObject();
+      JSONArray skillName = new JSONArray();
 
-    @Override
-    public String getAPIPath() {
-        return "/cms/removeFeedback.json";
-    }
+      Boolean feedbackUpdated = false;
 
-    @Override
-    public ServiceResponse serviceImpl(Query call, HttpServletResponse response, Authorization authorization, final JsonObjectWithDefault permissions) throws APIException {
+      if (feedbackSkill.has(model_name)) {
+        modelName = feedbackSkill.getJSONObject(model_name);
+        if (modelName.has(group_name)) {
+          groupName = modelName.getJSONObject(group_name);
+          if (groupName.has(language_name)) {
+            languageName = groupName.getJSONObject(language_name);
+            if (languageName.has(skill_name)) {
+              skillName = languageName.getJSONArray(skill_name);
+              JSONObject feedbackObject = new JSONObject();
 
-        String model_name = call.get("model", "general");
-        File model = new File(DAO.model_watch_dir, model_name);
-        String group_name = call.get("group", "Knowledge");
-        File group = new File(model, group_name);
-        String language_name = call.get("language", "en");
-        File language = new File(group, language_name);
-        String skill_name = call.get("skill", null);
-        File skill = SusiSkill.getSkillFileInLanguage(language, skill_name, false);
+              for (int i = 0; i < skillName.length(); i++) {
+                feedbackObject = skillName.getJSONObject(i);
+                if (authorization.getIdentity().isEmail() && feedbackObject.get(
+                  "email"
+                ).equals(idvalue) || (authorization.getIdentity().isUuid(
 
-        JSONObject result = new JSONObject();
-        if (!skill.exists()) {
-            throw new APIException(422, "Skill does not exist.");
-        }
-
-        if (!authorization.getIdentity().isAnonymous()) {
-        	String idvalue = authorization.getIdentity().getName(); // Get id from the access_token
-
-            JsonTray feedbackSkill = DAO.feedbackSkill;
-            JSONObject modelName = new JSONObject();
-            JSONObject groupName = new JSONObject();
-            JSONObject languageName = new JSONObject();
-            JSONArray skillName = new JSONArray();
-
-            Boolean feedbackUpdated = false;
-
-            if (feedbackSkill.has(model_name)) {
-                modelName = feedbackSkill.getJSONObject(model_name);
-                if (modelName.has(group_name)) {
-                    groupName = modelName.getJSONObject(group_name);
-                    if (groupName.has(language_name)) {
-                        languageName = groupName.getJSONObject(language_name);
-                        if (languageName.has(skill_name)) {
-                            skillName = languageName.getJSONArray(skill_name);
-                            JSONObject feedbackObject = new JSONObject();
-
-                            for (int i = 0; i < skillName.length(); i++) {
-                                feedbackObject = skillName.getJSONObject(i);
-                                if ((authorization.getIdentity().isEmail() && feedbackObject.get("email").equals(idvalue)) ||
-                                    (authorization.getIdentity().isUuid() && feedbackObject.get("uuid").equals(idvalue))) {
-                                    skillName.remove(i);
-                                    updateSkillRatingJSON(call);
-                                    feedbackUpdated = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
+                ) && feedbackObject.get("uuid").equals(idvalue))) {
+                  skillName.remove(i);
+                  updateSkillRatingJSON(call);
+                  feedbackUpdated = true;
+                  break;
                 }
+              }
             }
-
-            if (!feedbackUpdated ) {
-                result.put("message", "Skill feedback missing");
-            } else {
-                result.put("message", "Skill feedback updated");
-            }
-
-            languageName.put(skill_name, skillName);
-            groupName.put(language_name, languageName);
-            modelName.put(group_name, groupName);
-            feedbackSkill.put(model_name, modelName, true);
-            result.put("accepted", true);
-            return new ServiceResponse(result);
-        } else {
-            throw new APIException(422, "Access token not given.");
+          }
         }
+      }
+      if (!feedbackUpdated) {
+        result.put("message", "Skill feedback missing");
+      } else {
+        result.put("message", "Skill feedback updated");
+      }
+      languageName.put(skill_name, skillName);
+      groupName.put(language_name, languageName);
+      modelName.put(group_name, groupName);
+      feedbackSkill.put(model_name, modelName, true);
+      result.put("accepted", true);
+      return new ServiceResponse(result);
+    } else {
+      throw new APIException(422, "Access token not given.");
     }
+  }
 
-    // Reduce feedback_count from  skill_rating object to the skillRatingJSON
-    public void updateSkillRatingJSON(Query call) {
-        String model_name = call.get("model", "general");
-        String group_name = call.get("group", "Knowledge");
-        String language_name = call.get("language", "en");
-        String skill_name = call.get("skill", null);
+  // Reduce feedback_count from  skill_rating object to the skillRatingJSON
+  public void updateSkillRatingJSON(Query call) {
+    String model_name = call.get("model", "general");
+    String group_name = call.get("group", "Knowledge");
+    String language_name = call.get("language", "en");
+    String skill_name = call.get("skill", null);
 
-        JsonTray skillRating = DAO.skillRating;
-        JSONObject modelName = new JSONObject();
-        JSONObject groupName = new JSONObject();
-        JSONObject languageName = new JSONObject();
-        JSONObject skillName = new JSONObject();
-        if (skillRating.has(model_name)) {
-            modelName = skillRating.getJSONObject(model_name);
-            if (modelName.has(group_name)) {
-                groupName = modelName.getJSONObject(group_name);
-                if (groupName.has(language_name)) {
-                    languageName = groupName.getJSONObject(language_name);
-                    if (languageName.has(skill_name)) {
-                        skillName = languageName.getJSONObject(skill_name);
-                    }
-                }
-            }
+    JsonTray skillRating = DAO.skillRating;
+    JSONObject modelName = new JSONObject();
+    JSONObject groupName = new JSONObject();
+    JSONObject languageName = new JSONObject();
+    JSONObject skillName = new JSONObject();
+    if (skillRating.has(model_name)) {
+      modelName = skillRating.getJSONObject(model_name);
+      if (modelName.has(group_name)) {
+        groupName = modelName.getJSONObject(group_name);
+        if (groupName.has(language_name)) {
+          languageName = groupName.getJSONObject(language_name);
+          if (languageName.has(skill_name)) {
+            skillName = languageName.getJSONObject(skill_name);
+          }
         }
-
-        if (skillName.has("feedback_count")) {
-            int skillFeedback = skillName.getInt("feedback_count");
-            skillName.put("feedback_count", skillFeedback - 1 );
-        } 
-
-        languageName.put(skill_name, skillName);
-        groupName.put(language_name, languageName);
-        modelName.put(group_name, groupName);
-        skillRating.put(model_name, modelName, true);
-        return;
+      }
     }
+    if (skillName.has("feedback_count")) {
+      int skillFeedback = skillName.getInt("feedback_count");
+      skillName.put("feedback_count", skillFeedback - 1);
+    }
+    languageName.put(skill_name, skillName);
+    groupName.put(language_name, languageName);
+    modelName.put(group_name, groupName);
+    skillRating.put(model_name, modelName, true);
+    return;
+  }
 
 }
+

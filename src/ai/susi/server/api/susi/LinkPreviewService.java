@@ -16,52 +16,66 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
-
 package ai.susi.server.api.susi;
 
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.*;
+
+import javax.servlet.http.HttpServletResponse;
+
 import org.broadbear.link.preview.SourceContent;
 import org.broadbear.link.preview.TextCrawler;
 import org.json.JSONObject;
 
-import javax.servlet.http.HttpServletResponse;
-
 /**
  * Created by chetankaushik on 25/07/17.
  */
-public class LinkPreviewService extends AbstractAPIHandler implements APIHandler {
+public class LinkPreviewService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = 1463185662941444503L;
 
-    private static final long serialVersionUID = 1463185662941444503L;
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
 
-    @Override
-    public UserRole getMinimalUserRole() { return UserRole.ANONYMOUS; }
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
+  public String getAPIPath() {
+    return "/susi/linkPreview.json";
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query post,
+    HttpServletResponse response,
+    Authorization rights,
+    final JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    JSONObject jsonObject = new JSONObject();
+    String url = post.get("url", "");
+    if (url == null || url.isEmpty()) {
+      jsonObject.put("message", "URL Not given");
+      jsonObject.put("accepted", false);
+      return new ServiceResponse(jsonObject);
     }
+    SourceContent sourceContent = TextCrawler.scrape(url, 3);
+    if (sourceContent.getImages() != null && sourceContent.getImages().size(
 
-    public String getAPIPath() {
-        return "/susi/linkPreview.json";
-    }
-
-    @Override
-    public ServiceResponse serviceImpl(Query post, HttpServletResponse response, Authorization rights, final JsonObjectWithDefault permissions) throws APIException {
-        JSONObject jsonObject = new JSONObject();
-        String url = post.get("url", "");
-        if(url==null || url.isEmpty()){
-            jsonObject.put("message","URL Not given");
-            jsonObject.put("accepted",false);
-            return new ServiceResponse(jsonObject);
-        }
-        SourceContent sourceContent = 	TextCrawler.scrape(url,3);
-        if (sourceContent.getImages() != null && sourceContent.getImages().size() != 0) jsonObject.put("image", sourceContent.getImages().get(0));
-        if (sourceContent.getDescription() != null) jsonObject.put("descriptionShort", sourceContent.getDescription());
-        if(sourceContent.getTitle()!=null)jsonObject.put("title", sourceContent.getTitle());
-        jsonObject.put("accepted",true);
-        return new ServiceResponse(jsonObject);
-    }
+    ) != 0)
+    jsonObject.put("image", sourceContent.getImages().get(0));
+    if (sourceContent.getDescription() != null)
+    jsonObject.put("descriptionShort", sourceContent.getDescription());
+    if (sourceContent.getTitle() != null)
+    jsonObject.put("title", sourceContent.getTitle());
+    jsonObject.put("accepted", true);
+    return new ServiceResponse(jsonObject);
+  }
 
 }
+

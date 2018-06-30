@@ -17,7 +17,6 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.tools;
 
 import java.util.regex.Pattern;
@@ -37,22 +36,23 @@ import java.util.regex.Pattern;
  * Pattern.compile(regex).matcher(s).replaceAll(replacement);
  */
 public class CommonPattern {
-
-    public final static Pattern SPACE       = Pattern.compile(" ");
-    public final static Pattern COMMA       = Pattern.compile(",");
-    public final static Pattern SEMICOLON   = Pattern.compile(";");
-    public final static Pattern DOUBLEPOINT = Pattern.compile(":");
-    public final static Pattern SLASH       = Pattern.compile("/");
-    public final static Pattern PIPE        = Pattern.compile("\\|");
-    public final static Pattern BACKSLASH   = Pattern.compile("\\\\");
-    public final static Pattern QUESTION    = Pattern.compile("\\?");
-    public final static Pattern AMP         = Pattern.compile("&");
-    public final static Pattern AMP_HTML    = Pattern.compile(Pattern.quote("&amp;"));
-    public final static Pattern PLUS        = Pattern.compile(Pattern.quote("+"));
-    public final static Pattern DOT         = Pattern.compile("\\.");
-    public final static Pattern NEWLINE     = Pattern.compile("\n");
-    public final static Pattern VERTICALBAR = Pattern.compile(Pattern.quote("|"));
-    public final static Pattern UNDERSCORE  = Pattern.compile("_");
-    public final static Pattern TAB         = Pattern.compile("\t");
-    
+  public final static Pattern SPACE = Pattern.compile(" ");
+  public final static Pattern COMMA = Pattern.compile(",");
+  public final static Pattern SEMICOLON = Pattern.compile(";");
+  public final static Pattern DOUBLEPOINT = Pattern.compile(":");
+  public final static Pattern SLASH = Pattern.compile("/");
+  public final static Pattern PIPE = Pattern.compile("\\|");
+  public final static Pattern BACKSLASH = Pattern.compile("\\\\");
+  public final static Pattern QUESTION = Pattern.compile("\\?");
+  public final static Pattern AMP = Pattern.compile("&");
+  public final static Pattern AMP_HTML = Pattern.compile(
+    Pattern.quote("&amp;")
+  );
+  public final static Pattern PLUS = Pattern.compile(Pattern.quote("+"));
+  public final static Pattern DOT = Pattern.compile("\\.");
+  public final static Pattern NEWLINE = Pattern.compile("\n");
+  public final static Pattern VERTICALBAR = Pattern.compile(Pattern.quote("|"));
+  public final static Pattern UNDERSCORE = Pattern.compile("_");
+  public final static Pattern TAB = Pattern.compile("\t");
 }
+

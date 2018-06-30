@@ -16,44 +16,53 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.susi;
 
 import ai.susi.DAO;
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.*;
-import org.json.JSONObject;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class MindService extends AbstractAPIHandler implements APIHandler {
-   
-    private static final long serialVersionUID = 8578478303098111L;
+import javax.servlet.http.HttpServletResponse;
 
-    @Override
-    public UserRole getMinimalUserRole() { return UserRole.ANONYMOUS; }
+import org.json.JSONObject;
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
+public class MindService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = 8578478303098111L;
+
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
+
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
+
+  public String getAPIPath() {
+    return "/susi/mind.json";
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query post,
+    HttpServletResponse response,
+    Authorization user,
+    final JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    try {
+      DAO.susi.observe(); // get a database update
+    } catch(IOException e) {
+      DAO.log(e.getMessage());
     }
+    JSONObject json = DAO.susi.getMind();
+    return new ServiceResponse(json);
+  }
 
-    public String getAPIPath() {
-        return "/susi/mind.json";
-    }
-    
-    @Override
-    public ServiceResponse serviceImpl(Query post, HttpServletResponse response, Authorization user, final JsonObjectWithDefault permissions) throws APIException {
-
-        try {
-            DAO.susi.observe(); // get a database update
-        } catch (IOException e) {
-            DAO.log(e.getMessage());
-        }
-        
-        JSONObject json = DAO.susi.getMind();
-        return new ServiceResponse(json);
-    }
-    
 }
+

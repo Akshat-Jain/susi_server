@@ -16,39 +16,47 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.cms;
 
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.*;
-import org.json.JSONObject;
 
 import javax.servlet.http.HttpServletResponse;
 
-public class PostSkillTxtService extends AbstractAPIHandler implements APIHandler {
-    
-    private static final long serialVersionUID = 18344226L;
+import org.json.JSONObject;
 
-    @Override
-    public UserRole getMinimalUserRole() { return UserRole.ANONYMOUS; }
+public class PostSkillTxtService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = 18344226L;
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
 
-    @Override
-    public String getAPIPath() {
-        return "/cms/postSkill.txt";
-    }
-    
-    @Override
-    public ServiceResponse serviceImpl(Query call, HttpServletResponse response, Authorization rights, final JsonObjectWithDefault permissions) {
-        
-        JSONObject json = new JSONObject(true);
-        
-        // modify caching
-        json.put("$EXPIRES", 0);
-        return new ServiceResponse(json);
-    }
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
+
+  @Override
+  public String getAPIPath() {
+    return "/cms/postSkill.txt";
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query call,
+    HttpServletResponse response,
+    Authorization rights,
+    final JsonObjectWithDefault permissions
+  ) {
+    JSONObject json = new JSONObject(true);
+
+    // modify caching
+    json.put("$EXPIRES", 0);
+    return new ServiceResponse(json);
+  }
+
 }
+

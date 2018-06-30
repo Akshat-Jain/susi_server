@@ -16,8 +16,6 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
-
 package ai.susi.server;
 
 /**
@@ -28,15 +26,24 @@ package ai.susi.server;
  */
 public enum UserRole {
 
-    BOT,             // a technical access
-    ANONYMOUS,       // a person, everyone who is not logged in
-    USER,            // users who have logged in
-    REVIEWER,        // users with special rights for content creation, i.e. moderators
-    ACCOUNTCREATOR,  // users with special rights for user account creation
-    ADMIN,           // a sysop which can assign accountcreator rights and can assign single access rights to any user. also: delete and restore pages, block and unblock users
-    BUREAUCRAT;      // maximum right, that user is allowed to do everything
-    
-    public String getName() {
-    	return this.name().toLowerCase();
-    }
+  BOT,
+  // a technical access
+  ANONYMOUS,
+  // a person, everyone who is not logged in
+  USER,
+  // users who have logged in
+  REVIEWER,
+  // users with special rights for content creation, i.e. moderators
+  ACCOUNTCREATOR,
+  // users with special rights for user account creation
+  ADMIN,
+  // a sysop which can assign accountcreator rights and can assign single access rights to any user. also: delete and restore pages, block and unblock users
+  BUREAUCRAT;
+
+
+  public String getName() {
+    return this.name().toLowerCase();
+  }
+
 }
+

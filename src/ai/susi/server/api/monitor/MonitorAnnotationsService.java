@@ -16,13 +16,7 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.monitor;
-
-import javax.servlet.http.HttpServletResponse;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.APIException;
@@ -33,6 +27,11 @@ import ai.susi.server.Query;
 import ai.susi.server.ServiceResponse;
 import ai.susi.server.UserRole;
 
+import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 /**
  * Grafana Data endpoint:
  * Service for http://localhost:3000/plugins/grafana-simple-json-datasource/edit
@@ -40,51 +39,75 @@ import ai.susi.server.UserRole;
  * Try this with
  * http://localhost:4000/monitor/annotations
  */
-public class MonitorAnnotationsService extends AbstractAPIHandler implements APIHandler {
-    
-    private static final long serialVersionUID = 8539122L;
+public class MonitorAnnotationsService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = 8539122L;
 
-    @Override
-    public UserRole getMinimalUserRole() { return UserRole.ANONYMOUS; }
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
 
-    public String getAPIPath() {
-        return "/monitor/annotations";
-    }
-    
-    @Override
-    public ServiceResponse serviceImpl(Query post, HttpServletResponse response, Authorization user, final JsonObjectWithDefault permissions) throws APIException {
-        JSONObject data = post.getJSONBody();
-        // protocol details: https://github.com/grafana/simple-json-datasource/tree/master/dist#annotation-api
-        JSONArray json = new JSONArray();
-        
-        json
-            .put(new JSONObject(true)
-                .put("annotation", new JSONObject(true).put("name", "annotation name").put("enabled",true).put("datasource", "generic datasource").put("showLine", true))
-                .put("title", "Donlad trump is kinda funny")
-                .put("time", 1515850521166L)
-                .put("text", "teeext")
-                .put("tags", "taaags"))
-            .put(new JSONObject(true)
-                .put("annotation", new JSONObject(true).put("name", "annotation name").put("enabled",true).put("datasource", "generic datasource").put("showLine", true))
-                .put("title", "Wow he really won")
-                .put("time", 1515849521166L)
-                .put("text", "teeext")
-                .put("tags", "taaags"))
-            .put(new JSONObject(true)
-                .put("annotation", new JSONObject(true).put("name", "annotation name").put("enabled",true).put("datasource", "generic datasource").put("showLine", true))
-                .put("title", "When is the next ")
-                .put("time", 1515848521166L)
-                .put("text", "teeext")
-                .put("tags", "taaags"))
-        ;
-        
-        // success
-        return new ServiceResponse(json).enableCORS();
-    }
+  public String getAPIPath() {
+    return "/monitor/annotations";
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query post,
+    HttpServletResponse response,
+    Authorization user,
+    final JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    JSONObject data = post.getJSONBody();
+    // protocol details: https://github.com/grafana/simple-json-datasource/tree/master/dist#annotation-api
+    JSONArray json = new JSONArray();
+
+    json.put(
+      new JSONObject(true).put(
+        "annotation",
+        new JSONObject(true).put("name", "annotation name").put(
+          "enabled",
+          true
+        ).put("datasource", "generic datasource").put("showLine", true)
+      ).put("title", "Donlad trump is kinda funny").put(
+        "time",
+        1515850521166L
+      ).put("text", "teeext").put("tags", "taaags")
+    ).put(
+      new JSONObject(true).put(
+        "annotation",
+        new JSONObject(true).put("name", "annotation name").put(
+          "enabled",
+          true
+        ).put("datasource", "generic datasource").put("showLine", true)
+      ).put("title", "Wow he really won").put("time", 1515849521166L).put(
+        "text",
+        "teeext"
+      ).put("tags", "taaags")
+    ).put(
+      new JSONObject(true).put(
+        "annotation",
+        new JSONObject(true).put("name", "annotation name").put(
+          "enabled",
+          true
+        ).put("datasource", "generic datasource").put("showLine", true)
+      ).put("title", "When is the next ").put("time", 1515848521166L).put(
+        "text",
+        "teeext"
+      ).put("tags", "taaags")
+    );
+    // success
+
+    return new ServiceResponse(json).enableCORS();
+  }
+
 }
 

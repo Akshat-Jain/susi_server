@@ -16,15 +16,15 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.aaa;
 
 import ai.susi.DAO;
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.*;
-import org.json.JSONObject;
 
 import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONObject;
 
 /**
  * This Servlets returns all the group details of all the groups created.
@@ -33,31 +33,37 @@ import javax.servlet.http.HttpServletResponse;
  * http://127.0.0.1:4000/aaa/getAllGroups.json
  *
  */
-public class GetAllGroups extends AbstractAPIHandler implements APIHandler {
+public class GetAllGroups
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = -179412273153306443L;
 
-    private static final long serialVersionUID = -179412273153306443L;
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ADMIN;
+  }
 
-    @Override
-    public UserRole getMinimalUserRole() {
-        return UserRole.ADMIN;
-    }
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
+  @Override
+  public String getAPIPath() {
+    return "/aaa/getAllGroups.json";
+  }
 
-    @Override
-    public String getAPIPath() {
-        return "/aaa/getAllGroups.json";
-    }
-
-    @Override
-    public ServiceResponse serviceImpl(Query call, HttpServletResponse response, Authorization rights, final JsonObjectWithDefault permissions) {
-        JSONObject result = DAO.group.toJSON();
-        result.put("accepted", true);
-        result.put("message", "Success: Fetched all groups");
-        return new ServiceResponse(result);
-    }
+  @Override
+  public ServiceResponse serviceImpl(
+    Query call,
+    HttpServletResponse response,
+    Authorization rights,
+    final JsonObjectWithDefault permissions
+  ) {
+    JSONObject result = DAO.group.toJSON();
+    result.put("accepted", true);
+    result.put("message", "Success: Fetched all groups");
+    return new ServiceResponse(result);
+  }
 
 }
+

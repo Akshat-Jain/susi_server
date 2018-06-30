@@ -16,7 +16,6 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi;
 
 import java.util.ArrayList;
@@ -26,44 +25,48 @@ import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.Layout;
 import org.apache.log4j.spi.LoggingEvent;
 
-public class LogAppender extends AppenderSkeleton {
+public class LogAppender
+  extends AppenderSkeleton {
+  private int maxlines;
+  private List<String> lines;
 
-    private int maxlines;
-    private List<String> lines;
+  public LogAppender(Layout layout, int maxlines) {
+    this.layout = layout;
+    this.maxlines = maxlines;
+    this.lines = new ArrayList<>();
+    String line = layout.getHeader();
+    this.lines.add(line);
+  }
 
-    public LogAppender(Layout layout, int maxlines) {
-        this.layout = layout;
-        this.maxlines = maxlines;
-        this.lines = new ArrayList<>();
-        String line = layout.getHeader();
-        this.lines.add(line);
+  @Override
+  public void append(LoggingEvent event) {
+    if (event == null)
+    return;
+    String line = this.layout.format(event);
+    this.lines.add(line);
+    if (event.getThrowableInformation() != null) {
+      for (String t : event.getThrowableStrRep())
+      this.lines.add(t + "\n");
     }
+    while (this.lines.size() > this.maxlines) {
+      this.lines.remove(0);
+    }
+  }
 
-    @Override
-    public void append(LoggingEvent event) {
-        if (event == null) return;
-        String line = this.layout.format(event);
-        this.lines.add(line);
-        if (event.getThrowableInformation() != null) {
-            for (String t: event.getThrowableStrRep()) this.lines.add(t + "\n");
-        }
-        while (this.lines.size() > this.maxlines) {
-            this.lines.remove(0);
-        }
-    }
+  @Override
+  public void close() {
+    lines.clear();
+    lines = null;
+  }
 
-    @Override
-    public void close() {
-        lines.clear();
-        lines = null;
-    }
+  @Override
+  public boolean requiresLayout() {
+    return true;
+  }
 
-    @Override
-    public boolean requiresLayout() {
-        return true;
-    }
-    
-    public List<String> getLines() {
-        return this.lines;
-    }
+  public List<String> getLines() {
+    return this.lines;
+  }
+
 }
+

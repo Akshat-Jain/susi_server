@@ -1,7 +1,7 @@
 /todo.txt
 /classes/
 /data/
-
+/node_modules/
 /.idea
 *.iml
 /hs_err_*.log
@@ -20,7 +20,9 @@ dist
 dist/loklak.jar
 /build/
 /.gradle/
+/package-lock.json/
 
 /docs/_build
 
 data/settings/groups.json
+

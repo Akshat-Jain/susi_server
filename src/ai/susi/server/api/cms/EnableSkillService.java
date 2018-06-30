@@ -16,8 +16,6 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
-
 package ai.susi.server.api.cms;
 
 import ai.susi.DAO;
@@ -27,94 +25,101 @@ import ai.susi.server.APIHandler;
 import ai.susi.server.AbstractAPIHandler;
 import ai.susi.server.Accounting;
 import ai.susi.server.Authorization;
-import ai.susi.server.UserRole;
 import ai.susi.server.Query;
 import ai.susi.server.ServiceResponse;
+import ai.susi.server.UserRole;
+
+import java.io.File;
+
+import javax.servlet.http.HttpServletResponse;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.File;
 
 /**
  * Servlet to enable a skill in cms
  * this service accepts 4 parameter, model ,group, language and skill
  * test locally at http://127.0.0.1:4000/cms/enableSkill.json
  */
-public class EnableSkillService extends AbstractAPIHandler implements APIHandler {
+public class EnableSkillService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = -1462779958799939359L;
 
+  @Override
+  public String getAPIPath() {
+    return "/cms/enableSkill.json";
+  }
 
-    private static final long serialVersionUID = -1462779958799939359L;
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.USER;
+  }
 
-    @Override
-    public String getAPIPath() {
-        return "/cms/enableSkill.json";
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query call,
+    HttpServletResponse response,
+    Authorization authorization,
+    JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    String model_name = call.get("model", "general");
+    File model = new File(DAO.model_watch_dir, model_name);
+    String group_name = call.get("group", "Knowledge");
+    File group = new File(model, group_name);
+    String language_name = call.get("language", "en");
+    File language = new File(group, language_name);
+    String skill_name = call.get("skill", null);
+    File skill = new File(language, skill_name + ".txt");
+
+    JSONObject result = new JSONObject();
+    result.put("accepted", false);
+    if (!skill.exists()) {
+      result.put("message", "skill does not exist");
+      return new ServiceResponse(result);
     }
-
-    @Override
-    public UserRole getMinimalUserRole() {
-        return UserRole.USER;
-    }
-
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
-
-    @Override
-    public ServiceResponse serviceImpl(Query call, HttpServletResponse response, Authorization authorization, JsonObjectWithDefault permissions) throws APIException {
-
-        String model_name = call.get("model", "general");
-        File model = new File(DAO.model_watch_dir, model_name);
-        String group_name = call.get("group", "Knowledge");
-        File group = new File(model, group_name);
-        String language_name = call.get("language", "en");
-        File language = new File(group, language_name);
-        String skill_name = call.get("skill", null);
-        File skill = new File(language, skill_name + ".txt");
-
-
-        JSONObject result = new JSONObject();
-        result.put("accepted", false);
-        if (!skill.exists()) {
-            result.put("message", "skill does not exist");
-            return new ServiceResponse(result);
-
-        }
-        if (authorization.getIdentity() == null) {
-            throw new APIException(400, "Cannot enable skill, ensure you are logged in");
-        } else {
-            Accounting accounting = DAO.getAccounting(authorization.getIdentity());
-            if (!accounting.getJSON().has("disabledSkills")) {
-                accounting.getJSON().put("disabledSkills", new JSONObject());
-                accounting.commit();
+    if (authorization.getIdentity() == null) {
+      throw new APIException(
+        400,
+        "Cannot enable skill, ensure you are logged in"
+      );
+    } else {
+      Accounting accounting = DAO.getAccounting(authorization.getIdentity());
+      if (!accounting.getJSON().has("disabledSkills")) {
+        accounting.getJSON().put("disabledSkills", new JSONObject());
+        accounting.commit();
+      }
+      JSONObject disableSkills = accounting.getJSON().getJSONObject(
+        "disabledSkills"
+      );
+      if (disableSkills.has(model_name)) {
+        JSONObject modelName = disableSkills.getJSONObject(model_name);
+        if (modelName.has(group_name)) {
+          JSONObject groupName = modelName.getJSONObject(group_name);
+          if (groupName.has(language_name)) {
+            JSONArray languageName = groupName.getJSONArray(language_name);
+            for (int i = 0; i < languageName.length(); i++) {
+              if (skill_name.equals(languageName.getString(i))) {
+                languageName.remove(i);
+                result.put("accepted", true);
+                result.put("message", "Skill Enabled for user");
+                return new ServiceResponse(result);
+              }
             }
-
-            JSONObject disableSkills = accounting.getJSON().getJSONObject("disabledSkills");
-            if (disableSkills.has(model_name)) {
-             JSONObject   modelName = disableSkills.getJSONObject(model_name);
-                if (modelName.has(group_name)) {
-                    JSONObject groupName = modelName.getJSONObject(group_name);
-                    if (groupName.has(language_name)) {
-                       JSONArray languageName = groupName.getJSONArray(language_name);
-                        for(int i=0;i<languageName.length();i++) {
-                            if (skill_name.equals(languageName.getString(i))) {
-                                languageName.remove(i);
-                                result.put("accepted", true);
-                                result.put("message", "Skill Enabled for user");
-                                return new ServiceResponse(result);
-                            }
-                        }
-                    }
-                }
-            }
-
-            result.put("accepted", false);
-            result.put("message", "Skill not disabled for user");
-            return new ServiceResponse(result);
-
+          }
         }
+      }
+      result.put("accepted", false);
+      result.put("message", "Skill not disabled for user");
+      return new ServiceResponse(result);
     }
+  }
 
 }
+

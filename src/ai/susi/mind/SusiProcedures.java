@@ -16,8 +16,9 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.mind;
+
+import ai.susi.tools.TimeoutMatcher;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,17 +26,17 @@ import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ai.susi.tools.TimeoutMatcher;
+public class SusiProcedures
+  extends LinkedHashMap<Pattern, BiFunction<SusiArgument, Matcher, SusiThought>>
+  implements
+    Map<Pattern, BiFunction<SusiArgument, Matcher, SusiThought>> {
+  private static final long serialVersionUID = 4531596762427825563L;
 
-public class SusiProcedures extends LinkedHashMap<Pattern, BiFunction<SusiArgument, Matcher, SusiThought>> implements Map<Pattern, BiFunction<SusiArgument, Matcher, SusiThought>> {
+  public SusiProcedures() {
+    super();
+  }
 
-    private static final long serialVersionUID = 4531596762427825563L;
-
-    public SusiProcedures() {
-        super();
-    }
-    
-    /**
+  /**
      * Deduction is the application of an intent on perception and a world model.
      * In this method the mappings from the intent set is applied to the perception q and previous
      * deduction steps as given with the flow. Every mapping that has a matcher 
@@ -46,37 +47,42 @@ public class SusiProcedures extends LinkedHashMap<Pattern, BiFunction<SusiArgume
      * @param q the perception
      * @return a thought from the application of the intent set
      */
-    public SusiThought deduce(SusiArgument flow, String q) {
-        if (q == null) return new SusiThought();
-        q = q.trim();
-        for (Map.Entry<Pattern, BiFunction<SusiArgument, Matcher, SusiThought>> pe: this.entrySet()) {
-            Pattern p = pe.getKey();
-            Matcher m = p.matcher(q);
-            if (new TimeoutMatcher(m).matches()) try {
-                SusiThought json = pe.getValue().apply(flow, m);
-                if (json != null) {
-                    json.setProcess(p.pattern());
-                    return json;
-                }
-            } catch (Throwable e) {
-                // applying an intent may produce various failure, including
-                // - IOExceptions if the intent needs external resources
-                // - NullPointerException if the intent needs a flow which can be null in case of the attempt of an inspiration
-                // we silently ignore these exceptions as they are normal and acceptable during thinking
-            }
+  public SusiThought deduce(SusiArgument flow, String q) {
+    if (q == null)
+    return new SusiThought();
+    q = q.trim();
+    for (Map.Entry<
+      Pattern,
+      BiFunction<SusiArgument, Matcher, SusiThought>
+    > pe : this.entrySet()) {
+      Pattern p = pe.getKey();
+      Matcher m = p.matcher(q);
+      if (new TimeoutMatcher(m).matches())
+      try {
+        SusiThought json = pe.getValue().apply(flow, m);
+        if (json != null) {
+          json.setProcess(p.pattern());
+          return json;
         }
-        
-        // no success: produce an empty thought
-        return new SusiThought();
+      } catch(
+        Throwable e
+      ) // we silently ignore these exceptions as they are normal and acceptable during thinking
+      {}
     }
-    
-    /**
+    // no success: produce an empty thought
+
+    return new SusiThought();
+  }
+
+  /**
      * Inspiration is the application of an intent on a minimum perception. In this method the mappings
      * from the intent set is applied only to the perception q.
      * @param q the perception
      * @return a thought from the application of the intent set
      */
-    public SusiThought inspire(String q) {
-        return deduce(null, q);
-    }
+  public SusiThought inspire(String q) {
+    return deduce(null, q);
+  }
+
 }
+

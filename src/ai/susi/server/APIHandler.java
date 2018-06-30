@@ -16,38 +16,46 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server;
 
+import ai.susi.json.JsonObjectWithDefault;
+
 import java.io.IOException;
+
 import javax.servlet.http.HttpServletResponse;
 
 import org.json.JSONObject;
-
-import ai.susi.json.JsonObjectWithDefault;
 
 /**
  * Interface for all servlets
  */
 public interface APIHandler {
 
-    public String[] getServerProtocolHostStub();
+  public String[] getServerProtocolHostStub();
 
-    public abstract UserRole getMinimalUserRole();
+  public abstract UserRole getMinimalUserRole();
 
-    public abstract JSONObject getDefaultPermissions(UserRole baseUserRole);
-    
-    /**
+  public abstract JSONObject getDefaultPermissions(UserRole baseUserRole);
+
+  /**
      * get the path to the servlet
      * @return the url path of the servlet
      */
-    public String getAPIPath();
-    
-    /**
+  public String getAPIPath();
+
+  /**
      * call the servlet with a query locally without a network connection
      * @return a Service Response
      * @throws IOException
      */
-    public ServiceResponse serviceImpl(Query post, HttpServletResponse response, Authorization rights, final JsonObjectWithDefault permissions) throws APIException;
+  public ServiceResponse serviceImpl(
+    Query post,
+    HttpServletResponse response,
+    Authorization rights,
+    final JsonObjectWithDefault permissions
+  )
+    throws
+      APIException;
 
 }
+

@@ -1,5 +1,12 @@
 package org.json;
 
+/**
+ * The JSONPointerException is thrown by {@link JSONPointer} if an error occurs
+ * during evaluating a pointer.
+ * 
+ * @author JSON.org
+ * @version 2016-05-13
+ */
 /*
 Copyright (c) 2002 JSON.org
 
@@ -23,23 +30,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+public class JSONPointerException
+  extends JSONException {
+  private static final long serialVersionUID = 8872944667561856751L;
 
-/**
- * The JSONPointerException is thrown by {@link JSONPointer} if an error occurs
- * during evaluating a pointer.
- * 
- * @author JSON.org
- * @version 2016-05-13
- */
-public class JSONPointerException extends JSONException {
-    private static final long serialVersionUID = 8872944667561856751L;
+  public JSONPointerException(String message) {
+    super(message);
+  }
 
-    public JSONPointerException(String message) {
-        super(message);
-    }
-
-    public JSONPointerException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public JSONPointerException(String message, Throwable cause) {
+    super(message, cause);
+  }
 
 }
+

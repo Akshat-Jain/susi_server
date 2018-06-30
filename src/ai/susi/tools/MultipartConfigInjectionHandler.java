@@ -16,7 +16,6 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.tools;
 
 /**
@@ -57,18 +56,21 @@ import org.eclipse.jetty.util.MultiPartInputStreamParser;
  * from
  * {@link #handle(String, Request, HttpServletRequest, HttpServletResponse)}.
  */
-public class MultipartConfigInjectionHandler extends HandlerWrapper {
-    public static final String MULTIPART_FORMDATA_TYPE = "multipart/form-data";
+public class MultipartConfigInjectionHandler
+  extends HandlerWrapper {
+  public static final String MULTIPART_FORMDATA_TYPE = "multipart/form-data";
 
-    private static final MultipartConfigElement MULTI_PART_CONFIG = new MultipartConfigElement(
-            System.getProperty("java.io.tmpdir"));
+  private static final MultipartConfigElement MULTI_PART_CONFIG = new MultipartConfigElement(
+    System.getProperty("java.io.tmpdir")
+  );
 
-    public static boolean isMultipartRequest(ServletRequest request) {
-        return request.getContentType() != null
-                && request.getContentType().startsWith(MULTIPART_FORMDATA_TYPE);
-    }
+  public static boolean isMultipartRequest(ServletRequest request) {
+    return request.getContentType() != null && request.getContentType(
 
-    /**
+    ).startsWith(MULTIPART_FORMDATA_TYPE);
+  }
+
+  /**
      * If you want to have multipart support in your handler, call this method each time
      * your doHandle method is called (prior to calling getParameter).
      *
@@ -92,36 +94,46 @@ public class MultipartConfigInjectionHandler extends HandlerWrapper {
      * @see <a href="http://dev.eclipse.org/mhonarc/lists/jetty-users/msg03294.html">Jetty
      *      users mailing list post.</a>
      */
-    public static void enableMultipartSupport(HttpServletRequest request) {
-        request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, MULTI_PART_CONFIG);
-    }
+  public static void enableMultipartSupport(HttpServletRequest request) {
+    request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, MULTI_PART_CONFIG);
+  }
 
-    @Override
-    public void handle(String target, Request baseRequest, HttpServletRequest request,
-                       HttpServletResponse response) throws IOException, ServletException {
-        boolean multipartRequest = HttpMethod.POST.is(request.getMethod())
-                && isMultipartRequest(request);
-        if (multipartRequest) {
-            enableMultipartSupport(request);
-        }
-
-        try {
-            super.handle(target, baseRequest, request, response);
-        } finally {
-            if (multipartRequest) {
-                MultiPartInputStreamParser multipartInputStream = (MultiPartInputStreamParser) request
-                        .getAttribute(Request.__MULTIPART_INPUT_STREAM);
-                if (multipartInputStream != null) {
-                    try {
-                        // a multipart request to a servlet will have the parts cleaned up correctly, but
-                        // the repeated call to deleteParts() here will safely do nothing.
-                        multipartInputStream.deleteParts();
-                    } catch (MultiException e) {
-//            LOG.error("Error while deleting multipart request parts", e);
-                    }
-                }
-            }
-        }
+  @Override
+  public void handle(
+    String target,
+    Request baseRequest,
+    HttpServletRequest request,
+    HttpServletResponse response
+  )
+    throws
+      IOException,
+      ServletException {
+    boolean multipartRequest = HttpMethod.POST.is(
+      request.getMethod()
+    ) && isMultipartRequest(request);
+    if (multipartRequest) {
+      enableMultipartSupport(request);
     }
+    try {
+      super.handle(target, baseRequest, request, response);
+    } finally {
+      if (multipartRequest) {
+        MultiPartInputStreamParser multipartInputStream = (MultiPartInputStreamParser) request.getAttribute(
+          Request.__MULTIPART_INPUT_STREAM
+        );
+        if (multipartInputStream != null) {
+          try {
+            // a multipart request to a servlet will have the parts cleaned up correctly, but
+            // the repeated call to deleteParts() here will safely do nothing.
+            multipartInputStream.deleteParts();
+          } catch(
+            MultiException e
+          ) //            LOG.error("Error while deleting multipart request parts", e);
+          {}
+        }
+      }
+    }
+  }
+
 }
 

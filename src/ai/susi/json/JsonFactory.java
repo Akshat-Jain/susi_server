@@ -16,7 +16,6 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.json;
 
 import java.io.IOException;
@@ -25,6 +24,7 @@ import org.json.JSONObject;
 
 public interface JsonFactory {
 
-    public JSONObject getJSON() throws IOException;
-    
+  public JSONObject getJSON() throws IOException;
+
 }
+

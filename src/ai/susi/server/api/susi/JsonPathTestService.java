@@ -16,19 +16,20 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.susi;
 
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.json.JsonPath;
 import ai.susi.server.*;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import javax.servlet.http.HttpServletResponse;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 /**
  * test a jsonpath
@@ -36,55 +37,63 @@ import java.nio.charset.StandardCharsets;
  * http://localhost:4000/susi/jsonpath.json?json=%7B%22text%22:%22abc%22%7D&path=$.text
  * http://localhost:4000/susi/jsonpath.json?path=$.Models[0]&url=https://www.carqueryapi.com/api/0.3/?callback=xx%26cmd=getModels%26make=ford
  */
-public class JsonPathTestService extends AbstractAPIHandler implements APIHandler {
-   
-    private static final long serialVersionUID = 857847333032749879L;
+public class JsonPathTestService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = 857847333032749879L;
 
-    @Override
-    public String getAPIPath() {
-        return "/susi/jsonpath.json";
+  @Override
+  public String getAPIPath() {
+    return "/susi/jsonpath.json";
+  }
+
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
+
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query post,
+    HttpServletResponse response,
+    Authorization rights,
+    JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    post.setResponse(response, "application/javascript");
+
+    String jsonString = post.get("json", "{}").trim();
+    String url = post.get("url", "").trim();
+    if (jsonString.equals("{}") && url.length(
+
+    ) > 0) {// replace jsonString with content from web
+
+      try {
+        byte[] b = ConsoleService.loadData(url);
+        jsonString = new String(b, StandardCharsets.UTF_8);
+      } catch(IOException e) {
+        e.printStackTrace();
+      }
     }
+    String path = post.get("path", "$").trim();
 
-    @Override
-    public UserRole getMinimalUserRole() {
-        return UserRole.ANONYMOUS;
+    byte[] b = jsonString.getBytes(StandardCharsets.UTF_8);
+    JSONObject testresult = new JSONObject(true);
+    testresult.put("test", jsonString);
+    testresult.put("path", path);
+    try {
+      JSONArray data = JsonPath.parse(b, path);
+      testresult.put("data", data == null ? "error" : data);
+    } catch(JSONException e) {
+      testresult.put("data", "error: " + e.getMessage());
     }
-
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
-
-    @Override
-    public ServiceResponse serviceImpl(Query post, HttpServletResponse response, Authorization rights, JsonObjectWithDefault permissions) throws APIException {
-
-        post.setResponse(response, "application/javascript");
-
-        String jsonString = post.get("json", "{}").trim();
-        String url = post.get("url", "").trim();
-        if (jsonString.equals("{}") && url.length() > 0) {
-            // replace jsonString with content from web
-            try {
-                byte[] b = ConsoleService.loadData(url);
-                jsonString = new String(b, StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        String path = post.get("path", "$").trim();
-        
-        byte[] b = jsonString.getBytes(StandardCharsets.UTF_8);
-
-        JSONObject testresult = new JSONObject(true);
-        testresult.put("test", jsonString);
-        testresult.put("path", path);
-        try {
-            JSONArray data = JsonPath.parse(b, path);
-            testresult.put("data", data == null ? "error" : data);
-        } catch (JSONException e) {
-            testresult.put("data", "error: " + e.getMessage());
-        }
-        return new ServiceResponse(testresult);
-    }
+    return new ServiceResponse(testresult);
+  }
 
 }
+

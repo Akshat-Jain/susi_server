@@ -16,13 +16,7 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
-
 package ai.susi.server.api.monitor;
-
-import javax.servlet.http.HttpServletResponse;
-
-import org.json.JSONObject;
 
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.APIException;
@@ -33,27 +27,42 @@ import ai.susi.server.Query;
 import ai.susi.server.ServiceResponse;
 import ai.susi.server.UserRole;
 
+import javax.servlet.http.HttpServletResponse;
+
+import org.json.JSONObject;
+
 /**
  * http://localhost:4000/monitor/
  */
-public class MonitorTestService extends AbstractAPIHandler implements APIHandler {
-    
-    private static final long serialVersionUID = 8539122L;
+public class MonitorTestService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = 8539122L;
 
-    @Override
-    public UserRole getMinimalUserRole() { return UserRole.ANONYMOUS; }
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
 
-    public String getAPIPath() {
-        return "/monitor/";
-    }
-    
-    @Override
-    public ServiceResponse serviceImpl(Query post, HttpServletResponse response, Authorization user, final JsonObjectWithDefault permissions) throws APIException {
-        return new ServiceResponse("I am alive").enableCORS(); // just a ping test
-    }
+  public String getAPIPath() {
+    return "/monitor/";
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query post,
+    HttpServletResponse response,
+    Authorization user,
+    final JsonObjectWithDefault permissions
+  )
+    throws
+      APIException {
+    return new ServiceResponse("I am alive").enableCORS(); // just a ping test
+  }
+
 }
+

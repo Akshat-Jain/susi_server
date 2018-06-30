@@ -16,7 +16,6 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.mind;
 
 import java.util.regex.PatternSyntaxException;
@@ -28,44 +27,45 @@ import java.util.regex.PatternSyntaxException;
  * that matched from the input with the intent.
  */
 public class SusiIdea {
+  private SusiIntent intent;
+  private SusiLinguistics.Token token;
 
-    private SusiIntent intent;
-    private SusiLinguistics.Token token;
-    
-    /**
+  /**
      * create an idea based on a intent
      * @param intent the intent that matched
      * @throws PatternSyntaxException
      */
-    public SusiIdea(SusiIntent intent) throws PatternSyntaxException {
-        this.intent = intent;
-        this.token = null;
-    }
+  public SusiIdea(SusiIntent intent) {
+    this.intent = intent;
+    this.token = null;
+  }
 
-    public SusiIntent getIntent() {
-        return this.intent;
-    }
-    
-    /**
+  public SusiIntent getIntent() {
+    return this.intent;
+  }
+
+  /**
      * Add an token to the idea. The token is usually a work (i.e. a normalized single word)
      * that matched with the intent keys.
      * @param token Key
      * @return the idea
      */
-    public SusiIdea setToken(SusiLinguistics.Token token) {
-        this.token = token;
-        return this;
-    }
-    
-    /**
+  public SusiIdea setToken(SusiLinguistics.Token token) {
+    this.token = token;
+    return this;
+  }
+
+  /**
      * get the tokens for the idea
      * @return the keyword which matched with the intent keys
      */
-    public SusiLinguistics.Token getToken() {
-        return this.token;
-    }
-    
-    public String toString() {
-        return this.intent.toString();
-    }
+  public SusiLinguistics.Token getToken() {
+    return this.token;
+  }
+
+  public String toString() {
+    return this.intent.toString();
+  }
+
 }
+

@@ -16,20 +16,21 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.cms;
 
 import ai.susi.DAO;
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.mind.SusiSkill;
 import ai.susi.server.*;
+
+import java.io.File;
+import java.io.IOException;
+
+import javax.servlet.http.HttpServletResponse;
+
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.json.JSONObject;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.IOException;
 
 /**
  * Created by chetankaushik on 23/08/17.
@@ -37,71 +38,83 @@ import java.io.IOException;
  * When someone deletes a skill then it will move a folder delete_skills_dir.
  * This API Endpoint moves the deleted skill from the  delete_skills_dir to susi_skill_data repository.
  */
-public class UndoDeleteSkillService  extends AbstractAPIHandler implements APIHandler {
+public class UndoDeleteSkillService
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = -1755374387315534691L;
 
-    private static final long serialVersionUID = -1755374387315534691L;
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ANONYMOUS;
+  }
 
-    @Override
-    public UserRole getMinimalUserRole() {
-        return UserRole.ANONYMOUS;
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
+
+  @Override
+  public String getAPIPath() {
+    return "/cms/undoDeleteSkill.json";
+  }
+
+  @Override
+  public ServiceResponse serviceImpl(
+    Query call,
+    HttpServletResponse response,
+    Authorization rights,
+    final JsonObjectWithDefault permissions
+  ) {
+    String model_name = call.get("model", "general");
+    File model = new File(DAO.deleted_skill_dir, model_name);
+    String group_name = call.get("group", "Knowledge");
+    File group = new File(model, group_name);
+    String language_name = call.get("language", "en");
+    File language = new File(group, language_name);
+    String skill_name = call.get("skill", null);
+    File skill = SusiSkill.getSkillFileInLanguage(language, skill_name, false);
+    JSONObject json = new JSONObject(true);
+    json.put("accepted", false);
+    String path = skill.getPath();
+    path = path.replace(DAO.deleted_skill_dir.getPath(), "");
+
+    if (skill.exists()) {
+      File file = new File(DAO.model_watch_dir.getPath() + path);
+      file.getParentFile().mkdirs();
+      if (skill.renameTo(file)) {
+        Boolean changed = new File(
+          DAO.model_watch_dir.getPath() + path
+        ).setLastModified(System.currentTimeMillis());
+        System.out.print(changed);
+        System.out.println("Skill moved successfully!");
+      } else {
+        System.out.println("Skill failed to move!");
+      }
+      json.put("message", "Deleted " + skill_name);
+      //Add to git
+
+      try (Git git = DAO.getGit()){
+        git.add().setUpdate(true).addFilepattern(".").call();
+        // and then commit the changes
+        DAO.pushCommit(
+          git,
+          "Undo Delete " + skill_name,
+          !rights.getIdentity().isAnonymous() ? rights.getIdentity().getName(
+
+          ) : "anonymous@"
+        );
+        json.put("accepted", true);
+        json.put("message", "Deletion of Skill Aborted " + skill_name);
+      } catch(IOException | GitAPIException e) {
+        e.printStackTrace();
+      }
+    } else {
+      json.put(
+        "message",
+        "Cannot find '" + skill + "' ('" + skill.getAbsolutePath() + "')"
+      );
     }
-
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
-
-    @Override
-    public String getAPIPath() {
-        return "/cms/undoDeleteSkill.json";
-    }
-
-    @Override
-    public ServiceResponse serviceImpl(Query call, HttpServletResponse response, Authorization rights, final JsonObjectWithDefault permissions) {
-
-        String model_name = call.get("model", "general");
-        File model = new File(DAO.deleted_skill_dir, model_name);
-        String group_name = call.get("group", "Knowledge");
-        File group = new File(model, group_name);
-        String language_name = call.get("language", "en");
-        File language = new File(group, language_name);
-        String skill_name = call.get("skill", null);
-        File skill = SusiSkill.getSkillFileInLanguage(language, skill_name, false);
-        JSONObject json = new JSONObject(true);
-        json.put("accepted", false);
-        String path = skill.getPath();
-        path = path.replace(DAO.deleted_skill_dir.getPath(),"");
-
-        if (skill.exists()) {
-            File file = new File(DAO.model_watch_dir.getPath()+path);
-            file.getParentFile().mkdirs();
-            if(skill.renameTo(file)){
-                Boolean changed =  new File(DAO.model_watch_dir.getPath()+path).setLastModified(System.currentTimeMillis());
-                System.out.print(changed);
-                System.out.println("Skill moved successfully!");
-            }else{
-                System.out.println("Skill failed to move!");
-            }
-
-            json.put("message","Deleted "+ skill_name);
-
-            //Add to git
-            try (Git git = DAO.getGit()) {
-                git.add()
-                        .setUpdate(true)
-                        .addFilepattern(".")
-                        .call();
-                // and then commit the changes
-                DAO.pushCommit(git, "Undo Delete " + skill_name, !rights.getIdentity().isAnonymous() ? rights.getIdentity().getName() : "anonymous@");
-                json.put("accepted", true);
-                json.put("message", "Deletion of Skill Aborted " + skill_name);
-            } catch (IOException | GitAPIException e) {
-                e.printStackTrace();
-            }
-        } else {
-            json.put("message", "Cannot find '" + skill + "' ('" + skill.getAbsolutePath() + "')");
-        }
-        return new ServiceResponse(json);
-    }
+    return new ServiceResponse(json);
+  }
 
 }
+

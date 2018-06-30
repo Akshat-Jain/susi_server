@@ -16,65 +16,71 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.cms;
 
 import ai.susi.DAO;
 import ai.susi.json.JsonObjectWithDefault;
 import ai.susi.server.*;
+
+import java.io.File;
+import java.util.Collection;
+
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.util.Collection;
-
 /**
  * Created by chetankaushik on 19/08/17.
  * This API endpoint returns the list of all the skills which are scheduled to be deleted.
  * http://127.0.0.1:4000/cms/skillsToBeDeleted.json
  */
-public class SkillsToBeDeleted extends AbstractAPIHandler implements APIHandler {
+public class SkillsToBeDeleted
+  extends AbstractAPIHandler implements APIHandler {
+  private static final long serialVersionUID = -8691003678852307876L;
 
-    private static final long serialVersionUID = -8691003678852307876L;
+  @Override
+  public UserRole getMinimalUserRole() {
+    return UserRole.ADMIN;
+  }
 
-    @Override
-    public UserRole getMinimalUserRole() { return UserRole.ADMIN; }
+  @Override
+  public JSONObject getDefaultPermissions(UserRole baseUserRole) {
+    return null;
+  }
 
-    @Override
-    public JSONObject getDefaultPermissions(UserRole baseUserRole) {
-        return null;
-    }
+  @Override
+  public String getAPIPath() {
+    return "/cms/skillsToBeDeleted.json";
+  }
 
-    @Override
-    public String getAPIPath() {
-        return "/cms/skillsToBeDeleted.json";
-    }
+  @Override
+  public ServiceResponse serviceImpl(
+    Query call,
+    HttpServletResponse response,
+    Authorization rights,
+    final JsonObjectWithDefault permissions
+  ) {
+    String model_name = call.get("model", "general");
+    File model = new File(DAO.deleted_skill_dir, model_name);
+    JSONObject json = new JSONObject();
 
-    @Override
-    public ServiceResponse serviceImpl(Query call, HttpServletResponse response, Authorization rights, final JsonObjectWithDefault permissions) {
+    Collection files = FileUtils.listFiles(
+      DAO.deleted_skill_dir,
+      new RegexFileFilter("^(.txt)"),
+      DirectoryFileFilter.DIRECTORY
+    );
 
-        String model_name = call.get("model", "general");
-        File model = new File(DAO.deleted_skill_dir, model_name);
-        JSONObject json = new JSONObject();
+    JSONArray jsArray = new JSONArray(files);
 
-        Collection files = FileUtils.listFiles(
-                DAO.deleted_skill_dir,
-                new RegexFileFilter("^(.txt)"),
-                DirectoryFileFilter.DIRECTORY
-        );
-
-        JSONArray jsArray = new JSONArray(files);
-
-        json.put("skills", jsArray);
-        json.put("accepted", true);
-        json.put("message","Success: Fetched skill list");
-        return new ServiceResponse(json);
-
-    }
-
+    json.put("skills", jsArray);
+    json.put("accepted", true);
+    json.put("message", "Success: Fetched skill list");
+    return new ServiceResponse(json);
+  }
 
 }
+

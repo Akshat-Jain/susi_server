@@ -16,25 +16,26 @@
  *  along with this program in the file lgpl21.txt
  *  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package ai.susi.server.api.vis;
 
 import ai.susi.server.Query;
 import ai.susi.server.RemoteAccess;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartUtilities;
-import org.jfree.chart.JFreeChart;
-import org.jfree.data.general.DefaultPieDataset;
-import org.json.JSONObject;
+
+import java.awt.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Iterator;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.awt.*;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Iterator;
+
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.JFreeChart;
+import org.jfree.data.general.DefaultPieDataset;
+import org.json.JSONObject;
 
 /*
  * Sample Queries
@@ -44,87 +45,101 @@ import java.util.Iterator;
  * Note that the floatvalues should be strings and stringified
  * Query: http://127.0.0.1:4000/vis/piechart.png?data={%22ford%22:%2217.272992%22,%22toyota%22:%2227.272992%22,%22renault%22:%2247.272992%22}&width=1000&height=1000&legend=true&tooltip=false
  */
+public class PieChartServlet
+  extends HttpServlet {
+  public static final long serialVersionUID = 1L;
 
-public class PieChartServlet extends HttpServlet {
+  @Override
+  protected void doPost(
+    HttpServletRequest request,
+    HttpServletResponse response
+  )
+    throws
+      ServletException,
+      IOException {
+    doGet(request, response);
+  }
 
-	public static final long serialVersionUID = 1L;
+  @Override
+  protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    throws
+      IOException {
+    Query post = RemoteAccess.evaluate(request);
 
-	@Override
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        doGet(request, response);
+    // Get the json data to visualize as a key value pair of data=
+
+    if (post.isDoS_blackout()) {
+      response.sendError(503, "Your request frequency is too high");
+      return;
     }
+    // Get the data json string passed as stream parameter
+    String data = post.get("data", "");
+    String legendBitString = post.get("legend", "");
+    String tooltipBitString = post.get("tooltip", "");
+    String widthString = post.get("width", "");
+    String heightString = post.get("height", "");
+    boolean legendBit = true;
+    boolean tooltipBit = false;
 
-	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws  IOException {
+    int width = 500;
+    int height = 500;
 
-		Query post = RemoteAccess.evaluate(request);
+    if ("".equals(legendBitString) || "false".equals(legendBitString)) {
+      legendBit = true;
+    } else {
+      legendBit = false;
+    }
+    if ("".equals(tooltipBitString) || !"true".equals(tooltipBitString)) {
+      tooltipBit = false;
+    } else {
+      tooltipBit = true;
+    }
+    if (!"".equals(widthString)) {
+      width = Integer.parseInt(widthString);
+    }
+    if (!"".equals(heightString)) {
+      height = Integer.parseInt(heightString);
+    }
+    JSONObject json = new JSONObject(data);
 
-		// Get the json data to visualize as a key value pair of data=
+    response.setContentType("image/png");
 
-		if (post.isDoS_blackout()) { response.sendError(503, "Your request frequency is too high"); return; }
+    OutputStream outputStream = response.getOutputStream();
 
-		// Get the data json string passed as stream parameter
-		String data = post.get("data", "");
-		String legendBitString = post.get("legend", "");
-		String tooltipBitString = post.get("tooltip", "");
-		String widthString = post.get("width", "");
-		String heightString = post.get("height", "");
-		boolean legendBit = true;
-		boolean tooltipBit = false;
+    JFreeChart chart = getChart(json, legendBit, tooltipBit);
+    ChartUtilities.writeChartAsPNG(outputStream, chart, width, height);
+  }
 
-		int width = 500;
-		int height = 500;
+  public JFreeChart getChart(
+    JSONObject jsonData,
+    boolean legendBit,
+    boolean tooltipBit
+  ) {
+    DefaultPieDataset dataset = new DefaultPieDataset();
+    Iterator<String> iter = jsonData.keys();
+    while (iter.hasNext()) {
+      String keyData = iter.next();
+      Float value = Float.parseFloat(jsonData.getString(keyData));
+      dataset.setValue(keyData, value);
+    }
+    boolean legend = legendBit;
+    boolean tooltips = tooltipBit;
+    boolean urls = false;
 
-		if ("".equals(legendBitString) || "false".equals(legendBitString)) {
-			legendBit = true;
-		} else {
-			legendBit = false;
-		}
+    JFreeChart chart = ChartFactory.createPieChart(
+      "SUSI Visualizes - PieChart",
+      dataset,
+      legend,
+      tooltips,
+      urls
+    );
 
-		if ("".equals(tooltipBitString) || !"true".equals(tooltipBitString)) {
-			tooltipBit = false;
-		} else {
-			tooltipBit = true;
-		}
+    chart.setBorderPaint(Color.BLACK);
+    chart.setBorderStroke(new BasicStroke(5.0f));
+    chart.setBorderVisible(true);
 
-		if (!"".equals(widthString)) {
-			width = Integer.parseInt(widthString);
-		}
+    return chart;
+  }
 
-		if (!"".equals(heightString)) {
-			height = Integer.parseInt(heightString);
-		}
-
-		JSONObject json = new JSONObject(data);
-
-		response.setContentType("image/png");
-
-		OutputStream outputStream = response.getOutputStream();
-
-		JFreeChart chart = getChart(json, legendBit, tooltipBit);
-		ChartUtilities.writeChartAsPNG(outputStream, chart, width, height);
-	}
-
-	public JFreeChart getChart(JSONObject jsonData, boolean legendBit, boolean tooltipBit) {
-		DefaultPieDataset dataset = new DefaultPieDataset();
-		Iterator<String> iter = jsonData.keys();
-
-		while (iter.hasNext()) {
-			String keyData = iter.next();
-			Float value = Float.parseFloat(jsonData.getString(keyData));
-			dataset.setValue(keyData, value);
-		}
-
-		boolean legend = legendBit;
-		boolean tooltips = tooltipBit;
-		boolean urls = false;
-
-		JFreeChart chart = ChartFactory.createPieChart("SUSI Visualizes - PieChart", dataset, legend, tooltips, urls);
-
-		chart.setBorderPaint(Color.BLACK);
-		chart.setBorderStroke(new BasicStroke(5.0f));
-		chart.setBorderVisible(true);
-
-		return chart;
-	}
 }
+

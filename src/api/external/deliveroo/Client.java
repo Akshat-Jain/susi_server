@@ -6,13 +6,17 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 
 public class Client {
-	private CloseableHttpClient client = null;
-	private CookieStore cookieStore = new BasicCookieStore();
-	
-	public CloseableHttpClient getHttpClient() {
-		if (this.client == null) {
-			this.client = HttpClientBuilder.create().setDefaultCookieStore(cookieStore).build();
-		}
-		return this.client;
-	}
+  private CloseableHttpClient client = null;
+  private CookieStore cookieStore = new BasicCookieStore();
+
+  public CloseableHttpClient getHttpClient() {
+    if (this.client == null) {
+      this.client = HttpClientBuilder.create().setDefaultCookieStore(
+        cookieStore
+      ).build();
+    }
+    return this.client;
+  }
+
 }
+
