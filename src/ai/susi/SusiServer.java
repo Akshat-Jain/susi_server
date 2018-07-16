@@ -536,6 +536,7 @@ public class SusiServer {
 
                 //Get all Users
                 GetUsers.class,
+                GetAllUserDevices.class,
 
                 //Groups
                 GetGroupDetails.class,
