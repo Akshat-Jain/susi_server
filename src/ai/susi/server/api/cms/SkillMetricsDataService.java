@@ -69,6 +69,7 @@ public class SkillMetricsDataService extends AbstractAPIHandler implements APIHa
         JSONObject skillObject = new JSONObject();
         String countString = call.get("count", null);
         Integer count = null;
+        List<JSONObject> topRatedGames = new ArrayList<JSONObject>();
 
         if(countString != null) {
             if(Integer.parseInt(countString) < 0) {
@@ -103,6 +104,10 @@ public class SkillMetricsDataService extends AbstractAPIHandler implements APIHa
 
                     jsonArray.put(skillMetadata);
                     skillObject.put(skill_name, skillMetadata);
+
+                    if(skillMetadata.get("group").equals("Games, Trivia and Accessories")) {
+                        topRatedGames.add(skillMetadata);
+                    }
                 }
             }
 
@@ -222,6 +227,28 @@ public class SkillMetricsDataService extends AbstractAPIHandler implements APIHa
 
         JSONArray feedbackData = getSlicedArray(jsonValues, count);
         skillMetrics.put("feedback", feedbackData);
+
+        // Get top rated games
+        Collections.sort(topRatedGames, new Comparator<JSONObject>() {
+            @Override
+            public int compare(JSONObject a, JSONObject b) {
+                float valA;
+                float valB;
+                int result=0;
+
+                try {
+                    valA = a.getJSONObject("skill_rating").getJSONObject("stars").getFloat("avg_star");
+                    valB = b.getJSONObject("skill_rating").getJSONObject("stars").getFloat("avg_star");
+                    result = Float.compare(valB, valA);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return result;
+            }
+        });
+
+        JSONArray topRatedGamesData = getSlicedArray(topRatedGames, count);
+        skillMetrics.put("topRatedGames", topRatedGamesData);
 
         json.put("model", model_name)
                 .put("group", group_name)
